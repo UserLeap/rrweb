@@ -744,10 +744,8 @@ function serializeElementNode(
       canvasCtx = canvasService.getContext('2d');
     }
     const image = n as HTMLImageElement;
-    const oldValue = image.crossOrigin;
-    image.crossOrigin = 'anonymous';
-    const recordInlineImage = () => {
-      image.removeEventListener('load', recordInlineImage);
+    // The image content may not have finished loading yet.
+    if (image.complete && image.naturalWidth !== 0) {
       try {
         canvasService!.width = image.naturalWidth;
         canvasService!.height = image.naturalHeight;
@@ -761,13 +759,7 @@ function serializeElementNode(
           `Cannot inline img src=${image.currentSrc}! Error: ${err as string}`,
         );
       }
-      oldValue
-        ? (attributes.crossOrigin = oldValue)
-        : image.removeAttribute('crossorigin');
-    };
-    // The image content may not have finished loading yet.
-    if (image.complete && image.naturalWidth !== 0) recordInlineImage();
-    else image.addEventListener('load', recordInlineImage);
+    }
   }
   // media elements
   if (tagName === 'audio' || tagName === 'video') {
