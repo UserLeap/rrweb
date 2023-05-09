@@ -398,6 +398,7 @@ function isStylesheetLoaded(link: HTMLLinkElement) {
 }
 
 function onceStylesheetLoaded(
+  doc: Document,
   link: HTMLLinkElement,
   listener: () => unknown,
   styleSheetLoadTimeout: number,
@@ -410,7 +411,14 @@ function onceStylesheetLoaded(
     return;
   }
 
-  if (styleSheetLoaded) return;
+  if (styleSheetLoaded) {
+    if (isStyleSheetBlockedCrossOrigin(link.sheet)) {
+        const crossOriginLink = loadStyleSheetCrossOrigin(doc, link);
+        if (crossOriginLink) {
+          onceStylesheetLoaded(doc, crossOriginLink, listener, styleSheetLoadTimeout);
+        }
+    }
+  }
 
   const timer = setTimeout(() => {
     if (!fired) {
@@ -422,7 +430,14 @@ function onceStylesheetLoaded(
   link.addEventListener('load', () => {
     clearTimeout(timer);
     fired = true;
-    listener();
+    if (isStyleSheetBlockedCrossOrigin(link.sheet)) {
+      const crossOriginLink = loadStyleSheetCrossOrigin(doc, link);
+      if (crossOriginLink) {
+        onceStylesheetLoaded(doc, crossOriginLink, listener, styleSheetLoadTimeout);
+      }
+    } else {
+      listener();
+    }
   });
 }
 
@@ -645,9 +660,18 @@ function serializeElementNode(
   }
   // remote css
   if (tagName === 'link' && inlineStylesheet) {
-    const stylesheet = Array.from(doc.styleSheets).find((s) => {
+    let stylesheet = Array.from(doc.styleSheets).find((s) => {
       return s.href === (n as HTMLLinkElement).href;
     });
+    if (!stylesheet || isStyleSheetBlockedCrossOrigin(stylesheet)) {
+        const link = getCrossOriginLink(n as HTMLLinkElement);
+        try {
+          if (link?.sheet) {
+            stylesheet = link.sheet;
+          }
+        // eslint-disable-next-line no-empty
+        } catch {}
+    }
     let cssText: string | null = null;
     if (stylesheet) {
       cssText = getCssRulesString(stylesheet);
@@ -1156,6 +1180,7 @@ export function serializeNodeWithId(
     serializedNode.attributes.rel === 'stylesheet'
   ) {
     onceStylesheetLoaded(
+      doc,
       n as HTMLLinkElement,
       () => {
         if (onStylesheetLoad) {
@@ -1343,5 +1368,53 @@ export function cleanupSnapshot() {
   // allow a new recording to start numbering nodes from scratch
   _id = 1;
 }
+
+const crossOriginStylesheetLinks: {
+  [href: string]: HTMLLinkElement;
+} = {};
+
+const getCrossOriginLink = (link: HTMLLinkElement) => {
+  if (link.href in crossOriginStylesheetLinks) {
+    return crossOriginStylesheetLinks[link.href];
+  }
+  return null;
+};
+
+const storeCrossOriginLink = (href: string, link: HTMLLinkElement) => {
+  crossOriginStylesheetLinks[href] = link;
+}
+
+let stylesheetLoaderFrame: HTMLIFrameElement;
+const isStyleSheetBlockedCrossOrigin = (sheet?: CSSStyleSheet | null) => {
+    if (!sheet) return false;
+    try {
+        // This next line should throw if the style sheet is cross origin and the crossOrigin
+        // attribute is not set on
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const s = sheet.rules || sheet.cssRules;
+        return false;
+    } catch {
+        return true;
+    }
+};
+
+const loadStyleSheetCrossOrigin = (doc: Document, link: HTMLLinkElement) => {
+  const crossOriginLink = getCrossOriginLink(link);
+  if (crossOriginLink) return crossOriginLink;
+  if (!stylesheetLoaderFrame) {
+      stylesheetLoaderFrame = doc.createElement('iframe');
+      stylesheetLoaderFrame.style.display = 'none';
+      doc.body.appendChild(stylesheetLoaderFrame);
+  }
+  const stylesheetLink = doc.createElement('link');
+  stylesheetLink.crossOrigin = 'anonymous';
+  stylesheetLink.href = link.href;
+  stylesheetLink.rel = link.rel;
+  stylesheetLink.type = link.type;
+  if (!stylesheetLoaderFrame.contentWindow) return;
+  stylesheetLoaderFrame.contentWindow.document.body.appendChild(stylesheetLink);
+  storeCrossOriginLink(link.href, stylesheetLink);
+  return stylesheetLink;
+};
 
 export default snapshot;

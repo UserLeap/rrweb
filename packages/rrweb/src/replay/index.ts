@@ -1731,9 +1731,9 @@ export class Replayer {
                 (target.nodeName === 'LINK' || target.nodeName === 'STYLE')
               ) {
                 try {
-                  const newSn = mirror.getMeta(
+                  const newSn = JSON.parse(JSON.stringify(mirror.getMeta(
                     target as Node & RRNode,
-                  ) as serializedElementNodeWithId;
+                  ))) as serializedElementNodeWithId;
                   Object.assign(
                     newSn.attributes,
                     mutation.attributes as attributes,
