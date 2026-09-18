@@ -274,7 +274,8 @@ export default class MutationBuffer {
     if (this.mutationQueueEnabled) {
       this.mutationQueue.enqueue([...mutations, this.emit]);
     } else {
-      mutations.forEach(this.processMutation);
+      mutations.forEach(this.processMutation); // adds mutations to the buffer
+      this.emit(); // clears buffer if not locked/frozen
     }
   };
 
@@ -609,6 +610,7 @@ export default class MutationBuffer {
       }
       case 'attributes': {
         const target = m.target as HTMLElement;
+        const tagNameLower = toLowerCase(target.tagName);
         let attributeName = m.attributeName as string;
         let value = (m.target as HTMLElement).getAttribute(attributeName);
 
@@ -633,7 +635,7 @@ export default class MutationBuffer {
 
         let item = this.attributeMap.get(m.target);
         if (
-          target.tagName === 'IFRAME' &&
+          tagNameLower === 'iframe' &&
           attributeName === 'src' &&
           !this.keepIframeSrcFn(value as string)
         ) {
@@ -660,17 +662,17 @@ export default class MutationBuffer {
         // This is used to ensure we do not unmask value when using e.g. a "Show password" type button
         if (
           attributeName === 'type' &&
-          target.tagName === 'INPUT' &&
+          tagNameLower === 'input' &&
           (m.oldValue || '').toLowerCase() === 'password'
         ) {
           target.setAttribute('data-rr-is-password', 'true');
         }
 
-        if (!ignoreAttribute(target.tagName, attributeName, value)) {
+        if (!ignoreAttribute(tagNameLower, attributeName, value)) {
           // overwrite attribute if the mutations was triggered in same time
           item.attributes[attributeName] = transformAttribute(
             this.doc,
-            toLowerCase(target.tagName),
+            tagNameLower,
             toLowerCase(attributeName),
             value,
           );
