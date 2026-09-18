@@ -52,7 +52,7 @@
     "@rrweb/rrweb-plugin-sequential-id-record": "^2.1.4",
     "rrweb": "^2.1.4",
     "typescript": "^5.4.5",
-    "vite": "^6.0.1",
+    "vite": "^6.4.3",
     "vite-plugin-dts": "^3.9.1"
   },
   "peerDependencies": {
