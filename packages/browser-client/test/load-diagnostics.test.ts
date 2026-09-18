@@ -162,7 +162,9 @@ beforeEach(() => {
   sessionStorage.clear();
   document.body.innerHTML = '';
   setCurrentScript(null);
-  window.history.replaceState({}, '', 'http://localhost/');
+  // Origin-relative: happy-dom >= 20 enforces the same-origin rule on
+  // replaceState, and the test environment's URL is http://localhost:3000.
+  window.history.replaceState({}, '', '/');
 });
 
 afterEach(() => {

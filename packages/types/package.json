@@ -52,8 +52,8 @@
     "package.json"
   ],
   "devDependencies": {
-    "vite": "^6.0.1",
-    "vite-plugin-dts": "^3.9.1"
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^4.5.4"
   },
   "browserslist": [
     "supports es6-class"

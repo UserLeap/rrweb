@@ -85,8 +85,8 @@
     "ts-node": "^10.9.1",
     "tslib": "^2.3.1",
     "typescript": "^5.4.5",
-    "vite": "^6.0.1",
-    "vite-plugin-dts": "^3.9.1"
+    "vite": "^6.4.3",
+    "vite-plugin-dts": "^4.5.4"
   },
   "dependencies": {
     "@rrweb/types": "^2.1.4",
