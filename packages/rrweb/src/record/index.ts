@@ -1,7 +1,7 @@
 import {
   snapshot,
+  slimDOMDefaults,
   type MaskInputOptions,
-  type SlimDOMOptions,
   createMirror,
 } from 'rrweb-snapshot';
 import { initObservers, mutationBuffers } from './observer';
@@ -163,26 +163,7 @@ function record<T = eventWithTime>(
       ? _maskInputOptions
       : { password: true };
 
-  const slimDOMOptions: SlimDOMOptions =
-    _slimDOMOptions === true || _slimDOMOptions === 'all'
-      ? {
-          script: true,
-          comment: true,
-          headFavicon: true,
-          headWhitespace: true,
-          headMetaSocial: true,
-          headMetaRobots: true,
-          headMetaHttpEquiv: true,
-          headMetaVerification: true,
-          // the following are off for slimDOMOptions === true,
-          // as they destroy some (hidden) info:
-          headMetaAuthorship: _slimDOMOptions === 'all',
-          headMetaDescKeywords: _slimDOMOptions === 'all',
-          headTitleMutations: _slimDOMOptions === 'all',
-        }
-      : _slimDOMOptions
-      ? _slimDOMOptions
-      : {};
+  const slimDOMOptions = slimDOMDefaults(_slimDOMOptions);
 
   polyfill();
 
@@ -204,12 +185,9 @@ function record<T = eventWithTime>(
     }
     return e as unknown as T;
   };
-  wrappedEmit = (
-    r: eventWithoutTime & { timestamp?: number },
-    isCheckout?: boolean,
-  ) => {
+  wrappedEmit = (r: eventWithoutTime, isCheckout?: boolean) => {
     const e = r as eventWithTime;
-    e.timestamp = e.timestamp ?? nowTimestamp();
+    e.timestamp = nowTimestamp();
     if (
       mutationBuffers[0]?.isFrozen() &&
       e.type !== EventType.FullSnapshot &&
@@ -596,10 +574,7 @@ function record<T = eventWithTime>(
       handlers.push(observe(document));
       recording = true;
     };
-    if (
-      document.readyState === 'interactive' ||
-      document.readyState === 'complete'
-    ) {
+    if (['interactive', 'complete'].includes(document.readyState)) {
       init();
     } else {
       handlers.push(
