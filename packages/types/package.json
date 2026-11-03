@@ -52,7 +52,7 @@
     "package.json"
   ],
   "devDependencies": {
-    "vite": "^6.4.3",
+    "vite": "^6.4.5",
     "vite-plugin-dts": "^4.5.4"
   },
   "browserslist": [
